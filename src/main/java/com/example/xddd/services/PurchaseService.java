@@ -29,7 +29,7 @@ public class PurchaseService {
             return response;
         }
 
-        response = itemsService.purchaseItems(user);
+        response = itemsService.purchaseItems(json);
 
         return response;
     }

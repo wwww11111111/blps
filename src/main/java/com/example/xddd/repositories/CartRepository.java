@@ -10,7 +10,7 @@ import java.util.List;
 public interface CartRepository extends CrudRepository<Cart, Long> {
 
 
-    Cart findByOwnerLoginAndItemId(String ownerLogin, long itemId);
+    Cart findByOwnerLoginAndItemIdAndStatus(String ownerLogin, long itemId, String status);
 
-    List<Cart> findCartsByOwnerLogin(String ownerLogin);
+    List<Cart> findCartsByOwnerLoginAndStatus(String ownerLogin, String status);
 }

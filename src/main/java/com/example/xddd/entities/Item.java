@@ -12,6 +12,7 @@ public class Item {
     private Long id;
     private int number;
     private int categoryId;
+    private String description;
 
     public int getCategoryId() {
         return categoryId;
@@ -24,10 +25,19 @@ public class Item {
     public Item() {
     }
 
-    public Item(Long id, int number, int categoryId) {
+    public Item(Long id, int number, int categoryId, String description) {
         this.id = id;
         this.number = number;
         this.categoryId = categoryId;
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Long getId() {

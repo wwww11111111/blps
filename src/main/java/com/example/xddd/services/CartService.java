@@ -1,9 +1,9 @@
 package com.example.xddd.services;
 
 import com.example.xddd.entities.Cart;
-import com.example.xddd.entities.Status;
 import com.example.xddd.entities.Us3r;
 import com.example.xddd.repositories.CartRepository;
+import com.example.xddd.repositories.ItemsRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,12 +15,12 @@ import java.util.List;
 @Service
 public class CartService {
 
-    private final ItemsService itemsService;
+    private final ItemsRepository itemsRepository;
     private final Us3rService us3rService;
     private final CartRepository repository;
 
-    public CartService(ItemsService itemsService, Us3rService us3rService, CartRepository repository) {
-        this.itemsService = itemsService;
+    public CartService(ItemsRepository itemsRepository, Us3rService us3rService, CartRepository repository) {
+        this.itemsRepository = itemsRepository;
         this.us3rService = us3rService;
         this.repository = repository;
     }
@@ -47,8 +47,8 @@ public class CartService {
                 json.get("id").asText()
         );
 
-        Cart cart = repository.findByOwnerLoginAndItemId(
-                user.getLogin(), id
+        Cart cart = repository.findByOwnerLoginAndItemIdAndStatus(
+                user.getLogin(), id, "reserved"
         );
 
         if (cart == null) {
@@ -79,8 +79,8 @@ public class CartService {
                 json.get("id").asText()
         );
 
-        Cart cart = repository.findByOwnerLoginAndItemId(
-                user.getLogin(), id
+        Cart cart = repository.findByOwnerLoginAndItemIdAndStatus(
+                user.getLogin(), id, "reserved"
         );
 
         if (cart != null) {
@@ -91,10 +91,18 @@ public class CartService {
     }
 
     public ResponseEntity<?> getCart(ObjectNode json) {
-        Us3r user = new Us3r(
-                json.get("user").get("login").asText(),
-                json.get("user").get("password").asText()
-        );
+        Us3r user;
+
+        try {
+
+            user = new Us3r(
+                    json.get("user").get("login").asText(),
+                    json.get("user").get("password").asText()
+            );
+        } catch (NullPointerException e) {
+            return ResponseEntity.status(401).body("incorrect data");
+        }
+
 
         ResponseEntity<?> response = us3rService.validateUs3r(user);
 
@@ -102,7 +110,7 @@ public class CartService {
             return response;
         }
 
-        List<Cart> items = repository.findCartsByOwnerLogin(user.getLogin());
+        List<Cart> items = repository.findCartsByOwnerLoginAndStatus(user.getLogin(), "reserved");
 
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode root = objectMapper.createObjectNode();
@@ -110,8 +118,14 @@ public class CartService {
         ArrayNode array = objectMapper.createArrayNode();
 
         for (Cart item : items) {
-            array.add(objectMapper.valueToTree(item));
+
+            String description = itemsRepository.findById(item.getItemId()).get().getDescription();
+
+            array.add(((ObjectNode)objectMapper.valueToTree(item))
+                    .put("description",
+                            description));
         }
+
 
 
         root.set("items", array);
