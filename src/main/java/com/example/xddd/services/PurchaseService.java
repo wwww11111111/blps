@@ -1,6 +1,6 @@
 package com.example.xddd.services;
 
-import com.example.xddd.entities.Us3r;
+import com.example.xddd.entities.User;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ public class PurchaseService {
 
     public ResponseEntity<?> process(ObjectNode json) {
 
-        Us3r user = new Us3r(
+        User user = new User(
                 json.get("user").get("login").asText(),
                 json.get("user").get("password").asText()
         );

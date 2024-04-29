@@ -1,6 +1,6 @@
 package com.example.xddd.controllers;
 
-import com.example.xddd.entities.Us3r;
+import com.example.xddd.entities.User;
 import com.example.xddd.services.Us3rService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,7 +17,7 @@ public class Us3rController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Us3r user) {
+    public ResponseEntity<?> login(@RequestBody User user) {
         return service.validateUs3r(user);
     }
 }

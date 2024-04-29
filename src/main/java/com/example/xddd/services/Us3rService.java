@@ -1,24 +1,26 @@
 package com.example.xddd.services;
 
-import com.example.xddd.entities.Us3r;
-import com.example.xddd.repositories.Us3rRepository;
+import com.example.xddd.entities.User;
+import com.example.xddd.repositories.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
 public class Us3rService {
 
-    private final Us3rRepository repository;
+    private final UserRepository repository;
 
-    public Us3rService(Us3rRepository repository) {
+    public Us3rService(UserRepository repository) {
         this.repository = repository;
     }
 
-    public ResponseEntity<?> validateUs3r(Us3r user) {
+    public ResponseEntity<?> validateUs3r(User user) {
+
+
 
         String password = user.getPassword();
 
-        user = repository.findByLogin(user.getLogin());
+        user = repository.findByLogin(user.getLogin()).get();
 
         if (user == null) {
             return ResponseEntity.status(401).body("No such user exists");

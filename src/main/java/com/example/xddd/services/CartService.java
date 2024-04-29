@@ -1,7 +1,7 @@
 package com.example.xddd.services;
 
 import com.example.xddd.entities.Cart;
-import com.example.xddd.entities.Us3r;
+import com.example.xddd.entities.User;
 import com.example.xddd.repositories.CartRepository;
 import com.example.xddd.repositories.ItemsRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +28,7 @@ public class CartService {
 
     public ResponseEntity<?> add(ObjectNode json) {
 
-        Us3r user = new Us3r(
+        User user = new User(
                 json.get("user").get("login").asText(),
                 json.get("user").get("password").asText()
         );
@@ -39,32 +39,52 @@ public class CartService {
             return response;
         }
 
-        int number = Integer.parseInt(
-                json.get("number").asText()
-        );
+        int number;
+        try {
+            number = Integer.parseInt(
+                    json.get("number").asText()
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Missing some required parameters");
+        }
 
-        int id = Integer.parseInt(
-                json.get("id").asText()
-        );
+        int id;
+
+        try {
+            id = Integer.parseInt(
+                    json.get("id").asText()
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Missing some required parameters");
+
+        }
 
         Cart cart = repository.findByOwnerLoginAndItemIdAndStatus(
                 user.getLogin(), id, "reserved"
         );
 
         if (cart == null) {
-            repository.save(new Cart(user.getLogin(),
-                    id, number, "reserved"));
+
+            cart = new Cart(user.getLogin(),
+                    id, number, "reserved", null);
+            repository.save(cart);
         } else {
             cart.setItemNumber(cart.getItemNumber() + number);
             repository.save(cart);
         }
 
-        return ResponseEntity.ok().build();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        ObjectNode objectNode = objectMapper.valueToTree(cart);
+
+        objectNode.remove("orderId");
+
+        return ResponseEntity.ok().body(objectNode);
     }
 
 
     public ResponseEntity<?> delete(ObjectNode json) {
-        Us3r user = new Us3r(
+        User user = new User(
                 json.get("user").get("login").asText(),
                 json.get("user").get("password").asText()
         );
@@ -91,11 +111,11 @@ public class CartService {
     }
 
     public ResponseEntity<?> getCart(ObjectNode json) {
-        Us3r user;
+        User user;
 
         try {
 
-            user = new Us3r(
+            user = new User(
                     json.get("user").get("login").asText(),
                     json.get("user").get("password").asText()
             );
@@ -121,9 +141,14 @@ public class CartService {
 
             String description = itemsRepository.findById(item.getItemId()).get().getDescription();
 
-            array.add(((ObjectNode)objectMapper.valueToTree(item))
-                    .put("description",
-                            description));
+            ObjectNode newNode;
+
+            newNode = ((ObjectNode)objectMapper.valueToTree(item)).put("description",
+                    description);
+
+            newNode.remove("orderId");
+
+            array.add(newNode);
         }
 
 

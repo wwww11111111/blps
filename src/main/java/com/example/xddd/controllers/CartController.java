@@ -27,8 +27,7 @@ public class CartController {
     }
 
     @RequestMapping("/getCart")
-    public ResponseEntity<?> getCart(@RequestBody(required = false) ObjectNode json,
-                                     @RequestParam(required = false) Integer itemId) throws JsonProcessingException {
+    public ResponseEntity<?> getCart(@RequestBody(required = false) ObjectNode json) throws JsonProcessingException {
 
 
         return service.getCart(json);

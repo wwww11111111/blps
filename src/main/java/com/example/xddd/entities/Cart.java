@@ -13,16 +13,26 @@ public class Cart {
     private long itemId;
     private int itemNumber;
     private String status;
+    private Long orderId;
 
-    public Cart(String login, int item_id, int number, String status) {
+    public Cart(String login, int item_id, int number, String status, Long orderId) {
         this.ownerLogin = login;
         this.itemId = item_id;
         this.itemNumber = number;
         this.status = status;
+        this.orderId = orderId;
     }
 
     public Cart() {
 
+    }
+
+    public Long getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
     }
 
     public void setId(long id) {
