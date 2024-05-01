@@ -9,11 +9,11 @@ import org.springframework.stereotype.Service;
 public class PurchaseService {
 
     private final ItemsService itemsService;
-    private final Us3rService us3rService;
+    private final UserService userService;
 
-    public PurchaseService(ItemsService itemsService, Us3rService us3rService) {
+    public PurchaseService(ItemsService itemsService, UserService userService) {
         this.itemsService = itemsService;
-        this.us3rService = us3rService;
+        this.userService = userService;
     }
 
     public ResponseEntity<?> process(ObjectNode json) {
@@ -23,7 +23,7 @@ public class PurchaseService {
                 json.get("user").get("password").asText()
         );
 
-        ResponseEntity<?> response = us3rService.validateUs3r(user);
+        ResponseEntity<?> response = userService.validateUs3r(user);
 
         if (response.getStatusCodeValue() == 401) {
             return response;

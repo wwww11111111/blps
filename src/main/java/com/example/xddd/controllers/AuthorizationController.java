@@ -5,9 +5,11 @@ import com.example.xddd.entities.User;
 import com.example.xddd.repositories.RoleRepository;
 import com.example.xddd.repositories.UserRepository;
 import com.example.xddd.security.*;
+import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.thoughtworks.xstream.XStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +37,9 @@ public class AuthorizationController {
     UserRepository userRepository;
 
     @Autowired
+    UserRepositoryXmlImpl xmlrepo;
+
+    @Autowired
     RoleRepository roleRepository;
 
     @Autowired
@@ -43,112 +49,44 @@ public class AuthorizationController {
     RefreshTokenService refreshTokenService;
 
     @Autowired
-    JwtUtils jwtUtils;
+    JwtUtil jwtUtil;
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody ObjectNode json) {
 
-
-        Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(json.get("login").asText(),
-                        json.get("password").asText()));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        UserDetailsClass userDetails = (UserDetailsClass) authentication.getPrincipal();
-
-        String jwt = jwtUtils.generateJwtToken(userDetails);
-
-        List<String> roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-                .toList();
-
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        ObjectNode objectNode = objectMapper.createObjectNode();
-        objectNode.put("token", jwt);
-        objectNode.put("refresh-token", refreshToken.getToken());
-        objectNode.put("id", userDetails.getId());
-        objectNode.put("username", userDetails.getUsername());
-
-//        System.out.println(userRepository.findRolesById(userDetails.getId()));
-
-
-        ArrayNode arrayNode = objectMapper.createArrayNode();
-
-        for (String role : roles) {
-            arrayNode.add(role);
-        }
-
-        objectNode.set("roles", arrayNode);
-
-//        return ResponseEntity.ok(new JwtResponseDto(jwt, refreshToken.getToken(), userDetails.getId(),
-//                userDetails.getUsername(), roles));
-
-        return ResponseEntity.ok().body(objectNode);
-
-    }
-
-    @PostMapping("/newsignin")
-    public ResponseEntity<?> newAuthenticateUser(@RequestBody ObjectNode json) {
         final var authentication =
                 authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
-                                json.get("login").asText(), json.get("password").asText()));
+                                json.get("login").asText(),
+                                json.get("password").asText()));
         if (!authentication.isAuthenticated()) {
+//            throw new UnauthorizedException("Bad credentials");
             throw new RuntimeException("Bad credentials");
         }
+        final String token = jwtUtil.generateJwtToken(authentication);
+        final var user = userRepository.findByLogin(authentication.getName()).get();
 
-        UserDetailsClass userDetails = (UserDetailsClass) authentication.getPrincipal();
 
-        final String token = jwtUtils.generateJwtToken(userDetails);
-
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
         ObjectMapper objectMapper = new ObjectMapper();
-
         ObjectNode objectNode = objectMapper.createObjectNode();
-        objectNode.put("token", token);
-        objectNode.put("refresh-token", refreshToken.getToken());
-        objectNode.put("id", userDetails.getId());
-        objectNode.put("username", userDetails.getUsername());
-
-
         ArrayNode arrayNode = objectMapper.createArrayNode();
 
-        List<String> roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-                .toList();
+        objectNode.put("id", user.getId());
+        objectNode.put("token", token);
 
-        for (String role : roles) {
-            arrayNode.add(role);
+        List<Role> roles = user.getRoles();
+
+        for (Role role : roles) {
+            arrayNode.add(role.getName().name());
         }
 
         objectNode.set("roles", arrayNode);
 
+        objectNode.put("expires", jwtUtil.getExpirationDate(token).toInstant().toString());
+
         return ResponseEntity.ok().body(objectNode);
-
-
     }
 
-    @PostMapping("/refreshtoken")
-    public ResponseEntity<?> refreshToken(@RequestBody ObjectNode json) {
-        String requestRefreshToken = json.get("refresh-token").asText();
-
-        return refreshTokenService.findByToken(requestRefreshToken)
-                .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUser)
-                .map(user -> {
-                    String token = jwtUtils.generateTokenFromUsername(user.getLogin());
-
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    ObjectNode objectNode = objectMapper.createObjectNode();
-                    objectNode.put("access-token", token);
-                    objectNode.put("refresh-token", requestRefreshToken);
-                    return ResponseEntity.ok().body(objectNode);
-//                    return ResponseEntity.ok(new TokenRefreshResponseDto(token, requestRefreshToken));
-                })
-                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
-    }
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody ObjectNode json) {
@@ -158,12 +96,15 @@ public class AuthorizationController {
 
         User user = new User(json.get("login").asText(),
                 encoder.encode(json.get("password").asText()));
-        Set<Role> roles = new HashSet<>();
 
-        roles.add(roleRepository.findByName(ERole.ROLE_USER));
-
-        user.setRoles(roles);
+        user.getRoles().add(roleRepository.findByName(ERole.ROLE_USER));
         userRepository.save(user);
+        xmlrepo.save(user);
+
+        XStream xStream = new XStream();
+
+        System.out.println(xStream.toXML(user.getRoles()));
+
 
         return ResponseEntity.ok().body("User registered successfully!");
     }

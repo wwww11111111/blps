@@ -12,7 +12,7 @@ import javax.security.auth.spi.LoginModule;
 import java.io.IOException;
 import java.util.Map;
 
-public class UserDetailsLoginModule implements LoginModule {
+public class LoginModuleClass implements LoginModule {
 
     private Subject subject;
     private CallbackHandler callbackHandler;
@@ -36,10 +36,10 @@ public class UserDetailsLoginModule implements LoginModule {
 
     @Override
     public boolean login() throws LoginException {
-        final var nameCallback = new NameCallback("email");
+        final var nameCallback = new NameCallback("login");
         final var passwordCallback = new PasswordCallback("password", false);
         try {
-            callbackHandler.handle(new Callback[] {nameCallback, passwordCallback});
+            callbackHandler.handle(new Callback[]{nameCallback, passwordCallback});
             username = nameCallback.getName();
             final var password = String.valueOf(passwordCallback.getPassword());
             final var user = userDetailsService.loadUserByUsername(username);

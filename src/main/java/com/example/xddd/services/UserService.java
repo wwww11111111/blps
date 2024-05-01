@@ -6,11 +6,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
-public class Us3rService {
+public class UserService {
 
     private final UserRepository repository;
 
-    public Us3rService(UserRepository repository) {
+    public UserService(UserRepository repository) {
         this.repository = repository;
     }
 

@@ -1,18 +1,18 @@
 package com.example.xddd.controllers;
 
 import com.example.xddd.entities.User;
-import com.example.xddd.services.Us3rService;
+import com.example.xddd.services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class Us3rController {
+public class UserController {
 
-    private final Us3rService service;
+    private final UserService service;
 
-    public Us3rController(Us3rService service) {
+    public UserController(UserService service) {
         this.service = service;
     }
 

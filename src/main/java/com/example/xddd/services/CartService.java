@@ -16,12 +16,12 @@ import java.util.List;
 public class CartService {
 
     private final ItemsRepository itemsRepository;
-    private final Us3rService us3rService;
+    private final UserService userService;
     private final CartRepository repository;
 
-    public CartService(ItemsRepository itemsRepository, Us3rService us3rService, CartRepository repository) {
+    public CartService(ItemsRepository itemsRepository, UserService userService, CartRepository repository) {
         this.itemsRepository = itemsRepository;
-        this.us3rService = us3rService;
+        this.userService = userService;
         this.repository = repository;
     }
 
@@ -33,7 +33,7 @@ public class CartService {
                 json.get("user").get("password").asText()
         );
 
-        ResponseEntity<?> response = us3rService.validateUs3r(user);
+        ResponseEntity<?> response = userService.validateUs3r(user);
 
         if (response.getStatusCodeValue() == 401) {
             return response;
@@ -89,7 +89,7 @@ public class CartService {
                 json.get("user").get("password").asText()
         );
 
-        ResponseEntity<?> response = us3rService.validateUs3r(user);
+        ResponseEntity<?> response = userService.validateUs3r(user);
 
         if (response.getStatusCodeValue() == 401) {
             return response;
@@ -124,7 +124,7 @@ public class CartService {
         }
 
 
-        ResponseEntity<?> response = us3rService.validateUs3r(user);
+        ResponseEntity<?> response = userService.validateUs3r(user);
 
         if (response.getStatusCodeValue() == 401) {
             return response;

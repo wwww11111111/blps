@@ -29,7 +29,7 @@ public class UserDetailsClass implements UserDetails {
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsClass(Long id, String username, String password,
-                           Collection<? extends GrantedAuthority> authorities) {
+                            Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.username = username;
         this.password = password;
