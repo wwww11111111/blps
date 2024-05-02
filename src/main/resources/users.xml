@@ -1,4 +1,38 @@
-<com.example.xddd.security.Role>
-  <id>1</id>
-  <name>ROLE_USER</name>
-</com.example.xddd.security.Role>
+<users>
+  <user>
+    <id>0</id>
+    <login>smyts</login>
+    <password>$2a$10$lsszN5R.ehHG/O4ifNf43.eSdzwI4mwwLHldcQJSbBL./SZrbNRmW</password>
+    <testRole>asdasd</testRole>
+    <role>
+      <name>ROLE_USER</name>
+    </role>
+  </user>
+  <user>
+    <login>smyts</login>
+    <password>$2a$10$7jQ/VAJip34u5iiD/xN7Uu59Zr0dYxFZjrT2mUjWHHqNUTVl7ptrG</password>
+    <testRole>asdasd</testRole>
+    <role>
+      <id>1</id>
+      <name>ROLE_USER</name>
+    </role>
+  </user>
+  <user>
+    <id>1</id>
+    <login>smyts11</login>
+    <password>$2a$10$hX8mwZPqPfTQrki8a.0RouJwZqxZL/tIlrrJjBot9e/x3IUI5w7dO</password>
+    <testRole>asdasd</testRole>
+    <role>
+      <name>ROLE_USER</name>
+    </role>
+  </user>
+  <user>
+    <id>1</id>
+    <login>smyts11v1</login>
+    <password>$2a$10$RvSV0cKgVh2AwxGe55Cw.eyujECa0Gh.ihB3IA4bwaKsSjSyPBsYm</password>
+    <testRole>asdasd</testRole>
+    <role>
+      <name>ROLE_USER</name>
+    </role>
+  </user>
+</users>

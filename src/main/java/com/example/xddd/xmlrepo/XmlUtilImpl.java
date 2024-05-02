@@ -7,23 +7,24 @@ import org.springframework.stereotype.Service;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
+import java.io.*;
 
 @Service
-public class XmlUtilImpl implements XmlUtil {
+public class XmlUtilImpl {
     private final XStream xstream;
     public XmlUtilImpl(){
         this.xstream = new XStream();
-//        xstream.alias("user", User.class);
-//        xstream.alias("users", List.class);
+        xstream.alias("user", User.class);
+        xstream.alias("users", Users.class);
+        xstream.alias("role", Role.class);
+        xstream.addImplicitCollection(Users.class, "user");
+        xstream.addImplicitCollection(User.class, "role");
     }
-    @Override
+
     public <T> Object getEntity(Class<T> convertClass, String aliasName, String xmlPath) {
+
+
+
         xstream.alias(aliasName, convertClass);
         try {
             File file = new File(xmlPath);
@@ -40,17 +41,13 @@ public class XmlUtilImpl implements XmlUtil {
         return null;
     }
 
-    @Override
-    public void saveEntity(List<?> saveEntity, String xmlPath) {
-//        xstream.alias("user", User.class);
-//        xstream.alias("users", List.class);
-//        try {
-//            List<Role> listRole = (List<Role>) saveEntity.get(0);
-////            xstream.toXML(saveEntity, new FileWriter(xmlPath, false));
-//            xstream.toXML(listRole.get(0), new FileWriter(xmlPath, false));
-//        } catch (IOException e) {
-//            //System.err.println("Failed to save entity into file "+xmlPath);
-//            e.printStackTrace();
-//        }
+    public void saveEntity(Users usersToSave, String xmlPath) {
+        xstream.alias("user", User.class);
+        try {
+            xstream.toXML(usersToSave, new FileWriter(xmlPath, false));
+        } catch (IOException e) {
+            //System.err.println("Failed to save entity into file "+xmlPath);
+            e.printStackTrace();
+        }
     }
 }

@@ -4,6 +4,8 @@ package com.example.xddd.services;
 import com.example.xddd.entities.User;
 import com.example.xddd.repositories.UserRepository;
 import com.example.xddd.security.UserDetailsClass;
+import com.example.xddd.xmlrepo.UserRepositoryInterface;
+import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -15,13 +17,15 @@ import javax.transaction.Transactional;
 @Service
 public class UserDetailsServiceClass implements UserDetailsService {
     @Autowired
-    UserRepository userRepository;
+    UserRepositoryXmlImpl xmlrepo;
 
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByLogin(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
+        User user = xmlrepo.findByLogin(username);
+        if (user == null) {
+            throw new UsernameNotFoundException("User Not Found with username: " + username);
+        }
 
         return UserDetailsClass.build(user);
     }

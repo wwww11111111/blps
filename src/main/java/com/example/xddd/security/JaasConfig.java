@@ -1,8 +1,8 @@
 package com.example.xddd.security;
 
-import com.example.xddd.repositories.UserRepository;
 import com.example.xddd.security.jaas.LoginModuleClass;
 import com.example.xddd.security.jaas.UserRepositoryAuthorityGranter;
+import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.jaas.AbstractJaasAuthenticationProvider;
@@ -43,7 +43,7 @@ public class JaasConfig {
     @Bean
     public AbstractJaasAuthenticationProvider jaasAuthenticationProvider(
             final javax.security.auth.login.Configuration configuration,
-            final UserRepository userRepository) {
+            final UserRepositoryXmlImpl userRepository) {
         final var defaultJaasAuthenticationProvider = new DefaultJaasAuthenticationProvider();
         defaultJaasAuthenticationProvider.setConfiguration(configuration);
         defaultJaasAuthenticationProvider.setAuthorityGranters(

@@ -1,6 +1,5 @@
 package com.example.xddd.controllers;
 
-import com.example.xddd.entities.RefreshToken;
 import com.example.xddd.entities.User;
 import com.example.xddd.repositories.RoleRepository;
 import com.example.xddd.repositories.UserRepository;
@@ -9,22 +8,14 @@ import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.thoughtworks.xstream.XStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "${cors.urls}")
 @RestController
@@ -64,7 +55,9 @@ public class AuthorizationController {
             throw new RuntimeException("Bad credentials");
         }
         final String token = jwtUtil.generateJwtToken(authentication);
-        final var user = userRepository.findByLogin(authentication.getName()).get();
+//        final var user = userRepository.findByLogin(authentication.getName()).get();
+
+        final var user = xmlrepo.findByLogin(authentication.getName());
 
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -74,7 +67,7 @@ public class AuthorizationController {
         objectNode.put("id", user.getId());
         objectNode.put("token", token);
 
-        List<Role> roles = user.getRoles();
+        List<Role> roles = user.getRole();
 
         for (Role role : roles) {
             arrayNode.add(role.getName().name());
@@ -88,22 +81,46 @@ public class AuthorizationController {
     }
 
 
+//    @PostMapping("/signup")
+//    public ResponseEntity<?> registerUser(@RequestBody ObjectNode json) {
+//
+//        if (userRepository.existsByLogin(json.get("login").asText()))
+//            throw new RuntimeException("Error: Phone is already taken!");
+//
+//        User user = new User(json.get("login").asText(),
+//                encoder.encode(json.get("password").asText()));
+//
+//
+//        User user1 = new User(json.get("login").asText(),
+//                encoder.encode(json.get("password").asText()));
+//        user1.getRole().add(roleRepository.findByName(ERole.ROLE_USER));
+//
+//        user.getRole().add(roleRepository.findByName(ERole.ROLE_USER));
+//        System.out.println(user.getRole().getClass());
+//        user = userRepository.save(user);
+//        xmlrepo.save(user1);
+//
+//
+//        return ResponseEntity.ok().body("User registered successfully!");
+//    }
+
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody ObjectNode json) {
+    public ResponseEntity<?> registerUser1(@RequestBody ObjectNode json) {
 
-        if (userRepository.existsByLogin(json.get("login").asText()))
+
+        User user = xmlrepo.findByLogin(json.get("login").asText());
+
+        if (user != null) {
             throw new RuntimeException("Error: Phone is already taken!");
+        }
 
-        User user = new User(json.get("login").asText(),
+        user = new User(json.get("login").asText(),
                 encoder.encode(json.get("password").asText()));
 
-        user.getRoles().add(roleRepository.findByName(ERole.ROLE_USER));
-        userRepository.save(user);
+        user.setId(xmlrepo.getNextId());
+        user.getRole().add(new Role(ERole.ROLE_USER));
+
         xmlrepo.save(user);
-
-        XStream xStream = new XStream();
-
-        System.out.println(xStream.toXML(user.getRoles()));
 
 
         return ResponseEntity.ok().body("User registered successfully!");
