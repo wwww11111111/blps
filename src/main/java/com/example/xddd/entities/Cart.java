@@ -15,7 +15,7 @@ public class Cart {
     private String status;
     private Long orderId;
 
-    public Cart(String login, int item_id, int number, String status, Long orderId) {
+    public Cart(String login, long item_id, int number, String status, Long orderId) {
         this.ownerLogin = login;
         this.itemId = item_id;
         this.itemNumber = number;

@@ -35,7 +35,7 @@ public class LoginModuleClass implements LoginModule {
     }
 
     @Override
-    public boolean login() throws LoginException {
+    public boolean login() {
         final var nameCallback = new NameCallback("login");
         final var passwordCallback = new PasswordCallback("password", false);
         try {

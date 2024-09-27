@@ -1,10 +1,15 @@
 package com.example.xddd.entities;
 
 
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+@Setter
+@Getter
 @Entity
 @Table(name = "items")
 public class Item {
@@ -13,46 +18,17 @@ public class Item {
     private int number;
     private int categoryId;
     private String description;
-
-    public int getCategoryId() {
-        return categoryId;
-    }
-
-    public void setCategoryId(int categoryId) {
-        this.categoryId = categoryId;
-    }
+    private Long price;
 
     public Item() {
     }
 
-    public Item(Long id, int number, int categoryId, String description) {
+    public Item(Long id, int number, int categoryId, String description, Long price) {
         this.id = id;
         this.number = number;
         this.categoryId = categoryId;
         this.description = description;
+        this.price = price;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public int getNumber() {
-        return number;
-    }
-
-    public void setNumber(int number) {
-        this.number = number;
-    }
 }

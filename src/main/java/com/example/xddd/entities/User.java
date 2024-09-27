@@ -18,8 +18,8 @@ import java.util.List;
 public class User {
 
     @Id
+    @GeneratedValue
     @Column(name = "id")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "login")
@@ -28,7 +28,9 @@ public class User {
     @Column(name = "password")
     private String password;
 
-    private String testRole;
+    @Column(name = "balance")
+    private Long balance;
+
 
 //    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @ManyToMany
@@ -45,7 +47,6 @@ public class User {
     public User(String login, String password) {
         this.login = login;
         this.password = password;
-        this.testRole = "asdasd";
     }
 
 }

@@ -31,14 +31,12 @@ public class JwtTokenAuthErrorHandlingFilter extends OncePerRequestFilter {
             final @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            System.out.println("asdasdasd");
             filterChain.doFilter(request, response);
         } catch (final JwtException e) {
+            filterChain.doFilter(request, response);
             //токен плохой
-            System.out.println("asdasdas231321312d");
 //            HttpUtil.writeRestErrorResponse(request, response, e, FORBIDDEN, objectMapper);
         } catch (final UsernameNotFoundException e) {
-            System.out.println("asdasda532532532sd");
 //            HttpUtil.writeRestErrorResponse(request, response, e, NOT_FOUND, objectMapper);
         }
     }

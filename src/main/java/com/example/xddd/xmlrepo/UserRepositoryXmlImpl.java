@@ -6,11 +6,12 @@ import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Repository
 public class UserRepositoryXmlImpl implements UserRepositoryInterface {
     private final XmlUtilImpl xmlUtil;
-    private final String xmlPath = "C:\\Users\\Stepan Myts\\Desktop\\xddd\\src\\main\\resources\\users.xml";
+    private final String xmlPath = "C:\\Users\\Stepan Myts\\Downloads\\Telegram Desktop\\xddd\\xddd\\src\\main\\resources\\users.xml";
 
     public UserRepositoryXmlImpl(XmlUtilImpl xmlUtil) {
         this.xmlUtil = xmlUtil;
@@ -28,8 +29,6 @@ public class UserRepositoryXmlImpl implements UserRepositoryInterface {
     public User findByLogin(String login) {
         Users users = (Users) xmlUtil.getEntity(Users.class, "userList", xmlPath);
 
-
-
         if (users == null || users.getUser() == null) return null;
         List<User> userEntities = users.getUser();
         for (User cur : userEntities) {
@@ -40,20 +39,18 @@ public class UserRepositoryXmlImpl implements UserRepositoryInterface {
 
     @Override
     public void save(User user) {
+
+
         Users users = (Users) xmlUtil.getEntity(Users.class, "users", xmlPath);
 
 
-        try {
-            System.out.println(users.getUser().get(0).getRole().getClass());
-        } catch (Exception ignored) {
-
+        for (int i = 0; i < users.getUser().size(); i++) {
+            if (users.getUser().get(i).getId().equals(user.getId())) {
+                users.getUser().remove(i);
+            }
         }
 
-
-        System.out.println(users);
-        System.out.println(users.getUser().size());
         users.getUser().add(user);
-        System.out.println(users.getUser().size());
         xmlUtil.saveEntity(users, xmlPath);
         List<User> list = new ArrayList<>();
         list.add(user);

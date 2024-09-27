@@ -4,7 +4,6 @@ import com.example.xddd.entities.User;
 import com.example.xddd.repositories.RoleRepository;
 import com.example.xddd.repositories.UserRepository;
 import com.example.xddd.security.*;
-import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -12,14 +11,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @CrossOrigin(origins = "${cors.urls}")
 @RestController
-@RequestMapping("/api/auth")
 public class AuthorizationController {
     @Autowired
     AuthenticationManager authenticationManager;
@@ -27,8 +27,6 @@ public class AuthorizationController {
     @Autowired
     UserRepository userRepository;
 
-    @Autowired
-    UserRepositoryXmlImpl xmlrepo;
 
     @Autowired
     RoleRepository roleRepository;
@@ -45,20 +43,23 @@ public class AuthorizationController {
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody ObjectNode json) {
 
-        final var authentication =
-                authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                json.get("login").asText(),
-                                json.get("password").asText()));
-        if (!authentication.isAuthenticated()) {
-//            throw new UnauthorizedException("Bad credentials");
-            throw new RuntimeException("Bad credentials");
+
+        Authentication authentication;
+        try {
+            authentication =
+                    authenticationManager.authenticate(
+                            new UsernamePasswordAuthenticationToken(
+                                    json.get("login").asText(),
+                                    json.get("password").asText()));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return ResponseEntity.ok().body("Invalid credentials");
         }
+
         final String token = jwtUtil.generateJwtToken(authentication);
-//        final var user = userRepository.findByLogin(authentication.getName()).get();
 
-        final var user = xmlrepo.findByLogin(authentication.getName());
 
+        User user = userRepository.findByLogin(json.get("login").asText()).get();
 
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode objectNode = objectMapper.createObjectNode();
@@ -80,47 +81,25 @@ public class AuthorizationController {
         return ResponseEntity.ok().body(objectNode);
     }
 
-
-//    @PostMapping("/signup")
-//    public ResponseEntity<?> registerUser(@RequestBody ObjectNode json) {
-//
-//        if (userRepository.existsByLogin(json.get("login").asText()))
-//            throw new RuntimeException("Error: Phone is already taken!");
-//
-//        User user = new User(json.get("login").asText(),
-//                encoder.encode(json.get("password").asText()));
-//
-//
-//        User user1 = new User(json.get("login").asText(),
-//                encoder.encode(json.get("password").asText()));
-//        user1.getRole().add(roleRepository.findByName(ERole.ROLE_USER));
-//
-//        user.getRole().add(roleRepository.findByName(ERole.ROLE_USER));
-//        System.out.println(user.getRole().getClass());
-//        user = userRepository.save(user);
-//        xmlrepo.save(user1);
-//
-//
-//        return ResponseEntity.ok().body("User registered successfully!");
-//    }
-
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser1(@RequestBody ObjectNode json) {
+    public ResponseEntity<?> registerUser(@RequestBody ObjectNode json) {
 
+        Optional<User> userOptional = userRepository.findByLogin(json.get("login")
+                .asText());
 
-        User user = xmlrepo.findByLogin(json.get("login").asText());
-
-        if (user != null) {
-            throw new RuntimeException("Error: Phone is already taken!");
+        if (userOptional.isPresent()) {
+            return ResponseEntity.status(401).body("Error: Phone is already taken!");
         }
+
+        User user;
 
         user = new User(json.get("login").asText(),
                 encoder.encode(json.get("password").asText()));
+        user.setBalance(0L);
 
-        user.setId(xmlrepo.getNextId());
-        user.getRole().add(new Role(ERole.ROLE_USER));
+        user.getRole().add(roleRepository.findByName(ERole.ROLE_USER).get());
 
-        xmlrepo.save(user);
+        userRepository.save(user);
 
 
         return ResponseEntity.ok().body("User registered successfully!");

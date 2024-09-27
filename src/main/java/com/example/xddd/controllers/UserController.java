@@ -1,23 +1,27 @@
 package com.example.xddd.controllers;
 
 import com.example.xddd.entities.User;
-import com.example.xddd.services.UserService;
+import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class UserController {
 
-    private final UserService service;
+    @Autowired
+    UserRepositoryXmlImpl repositoryXml;
 
-    public UserController(UserService service) {
-        this.service = service;
-    }
+    @GetMapping("/balance")
+    public ResponseEntity<?> getBalance() {
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User user) {
-        return service.validateUs3r(user);
+        User user = repositoryXml.findByLogin(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
+
+        return ResponseEntity.ok().body("{\"balance\": \"" + user.getBalance() + "\"}");
+
     }
 }

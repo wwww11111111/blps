@@ -1,5 +1,6 @@
 package com.example.xddd.security;
 
+import com.example.xddd.repositories.UserRepository;
 import com.example.xddd.security.jaas.LoginModuleClass;
 import com.example.xddd.security.jaas.UserRepositoryAuthorityGranter;
 import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
@@ -43,7 +44,7 @@ public class JaasConfig {
     @Bean
     public AbstractJaasAuthenticationProvider jaasAuthenticationProvider(
             final javax.security.auth.login.Configuration configuration,
-            final UserRepositoryXmlImpl userRepository) {
+            final UserRepository userRepository) {
         final var defaultJaasAuthenticationProvider = new DefaultJaasAuthenticationProvider();
         defaultJaasAuthenticationProvider.setConfiguration(configuration);
         defaultJaasAuthenticationProvider.setAuthorityGranters(

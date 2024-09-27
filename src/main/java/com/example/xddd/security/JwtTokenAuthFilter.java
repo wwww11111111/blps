@@ -48,6 +48,7 @@ public class JwtTokenAuthFilter extends OncePerRequestFilter {
                 final Authentication authentication =
                         new UsernamePasswordAuthenticationToken(user, null, jwtUtil.getAuthorities(jwtToken));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+//                System.out.println("засетили аутентификацию");
             }
         } catch (final JwtException e) {
 //            log.warn("Error handling JWT token: {}", e.getMessage());

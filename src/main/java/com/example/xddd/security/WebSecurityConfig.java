@@ -14,20 +14,22 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import javax.servlet.http.HttpServletResponse;
+
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
 
 
     private final UserDetailsService userService;
     private final AbstractJaasAuthenticationProvider jaasAuthenticationProvider;
     private final JwtUtil jwtUtil;
 
-    @Override
+//    @Override
     public void configure(AuthenticationManagerBuilder authenticationManagerBuilder) {
         authenticationManagerBuilder.authenticationProvider(jaasAuthenticationProvider);
 
@@ -36,13 +38,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     @Override
     public AuthenticationManager authenticationManagerBean() throws Exception {
+
         return super.authenticationManagerBean();
     }
 
-    @Override
+//    @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-        System.out.println(this);
         http.addFilterAfter(
                         new JwtTokenAuthFilter(userService, jwtUtil),
                         UsernamePasswordAuthenticationFilter.class)
@@ -56,8 +58,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .frameOptions()
                 .sameOrigin()
                 .and()
-                .authorizeRequests()
-                .antMatchers("/h2-console/**")
-                .permitAll();
+                .authorizeRequests().anyRequest().permitAll()
+                .and().exceptionHandling().authenticationEntryPoint(
+                        (request, response, ex) -> {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, ex.getMessage());
+                        }
+                );
+//                .antMatchers("/h2-console/**")
+//                .permitAll();
     }
 }

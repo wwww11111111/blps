@@ -1,43 +1,47 @@
 package com.example.xddd.services;
 
 import com.example.xddd.entities.Cart;
+import com.example.xddd.entities.Item;
 import com.example.xddd.entities.User;
 import com.example.xddd.repositories.CartRepository;
 import com.example.xddd.repositories.ItemsRepository;
+import com.example.xddd.repositories.UserRepository;
+import com.example.xddd.security.Role;
+import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.*;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CartService {
 
     private final ItemsRepository itemsRepository;
-    private final UserService userService;
     private final CartRepository repository;
+    private final UserRepositoryXmlImpl repositoryXml;
+    private final UserRepository userRepository;
 
-    public CartService(ItemsRepository itemsRepository, UserService userService, CartRepository repository) {
+
+    public CartService(ItemsRepository itemsRepository, CartRepository repository, UserRepositoryXmlImpl repositoryXml, UserRepository userRepository) {
         this.itemsRepository = itemsRepository;
-        this.userService = userService;
         this.repository = repository;
+        this.repositoryXml = repositoryXml;
+        this.userRepository = userRepository;
     }
 
 
-    public ResponseEntity<?> add(ObjectNode json) {
+        public ResponseEntity<?> add(ObjectNode json) {
 
-        User user = new User(
-                json.get("user").get("login").asText(),
-                json.get("user").get("password").asText()
-        );
+            User user = userRepository.findByLogin(
+                    SecurityContextHolder.getContext().getAuthentication().getName()
+            ).get();
 
-        ResponseEntity<?> response = userService.validateUs3r(user);
-
-        if (response.getStatusCodeValue() == 401) {
-            return response;
-        }
 
         int number;
         try {
@@ -48,15 +52,21 @@ public class CartService {
             return ResponseEntity.status(400).body("Missing some required parameters");
         }
 
-        int id;
+        long id;
 
         try {
-            id = Integer.parseInt(
+            id = Long.parseLong(
                     json.get("id").asText()
             );
         } catch (Exception e) {
             return ResponseEntity.status(400).body("Missing some required parameters");
 
+        }
+
+        Optional<Item> itemOptional = itemsRepository.findById(id);
+
+        if (itemOptional.isEmpty()) {
+            return ResponseEntity.ok().body("No item with such id exists");
         }
 
         Cart cart = repository.findByOwnerLoginAndItemIdAndStatus(
@@ -84,16 +94,9 @@ public class CartService {
 
 
     public ResponseEntity<?> delete(ObjectNode json) {
-        User user = new User(
-                json.get("user").get("login").asText(),
-                json.get("user").get("password").asText()
+        User user = repositoryXml.findByLogin(
+                SecurityContextHolder.getContext().getAuthentication().getName()
         );
-
-        ResponseEntity<?> response = userService.validateUs3r(user);
-
-        if (response.getStatusCodeValue() == 401) {
-            return response;
-        }
 
         int id = Integer.parseInt(
                 json.get("id").asText()
@@ -110,25 +113,12 @@ public class CartService {
         return ResponseEntity.ok().build();
     }
 
+
+
     public ResponseEntity<?> getCart(ObjectNode json) {
-        User user;
-
-        try {
-
-            user = new User(
-                    json.get("user").get("login").asText(),
-                    json.get("user").get("password").asText()
-            );
-        } catch (NullPointerException e) {
-            return ResponseEntity.status(401).body("incorrect data");
-        }
-
-
-        ResponseEntity<?> response = userService.validateUs3r(user);
-
-        if (response.getStatusCodeValue() == 401) {
-            return response;
-        }
+        User user = repositoryXml.findByLogin(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
 
         List<Cart> items = repository.findCartsByOwnerLoginAndStatus(user.getLogin(), "reserved");
 
@@ -143,14 +133,13 @@ public class CartService {
 
             ObjectNode newNode;
 
-            newNode = ((ObjectNode)objectMapper.valueToTree(item)).put("description",
+            newNode = ((ObjectNode) objectMapper.valueToTree(item)).put("description",
                     description);
 
             newNode.remove("orderId");
 
             array.add(newNode);
         }
-
 
 
         root.set("items", array);

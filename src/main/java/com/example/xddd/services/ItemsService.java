@@ -3,31 +3,81 @@ package com.example.xddd.services;
 import com.example.xddd.entities.Cart;
 import com.example.xddd.entities.Item;
 import com.example.xddd.entities.Order;
+import com.example.xddd.entities.User;
+import com.example.xddd.jms.JmsSender;
 import com.example.xddd.repositories.CartRepository;
 import com.example.xddd.repositories.ItemsRepository;
+import com.example.xddd.repositories.OrderRepository;
+import com.example.xddd.repositories.UserRepository;
+import com.example.xddd.services.jobs.StatJob;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Getter;
+import lombok.Setter;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.json.JSONObject;
+import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+
 @Service
 public class ItemsService {
 
+    @Getter
+    @Setter
+    private static int successfulOrders;
+
     private final ItemsRepository repository;
     private final CartRepository cartRepository;
-    private final OrderService orderService;
+    private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
+    private final JmsSender jmsSender;
+
 
     public ItemsService(ItemsRepository repository,
                         CartRepository cartRepository,
-                        OrderService orderService) {
+                        OrderRepository orderRepository, UserRepository userRepository, JmsSender jmsSender) {
         this.repository = repository;
         this.cartRepository = cartRepository;
-        this.orderService = orderService;
+        this.orderRepository = orderRepository;
+        this.userRepository = userRepository;
+        this.jmsSender = jmsSender;
+        successfulOrders = 0;
+//        try {
+//            startJob();
+//        } catch (SchedulerException e) {
+//            throw new RuntimeException(e);
+//        }
+    }
+
+
+    private void startJob() throws SchedulerException {
+
+        SchedulerFactory schedulerFactory = new StdSchedulerFactory();
+        Scheduler scheduler = schedulerFactory.getScheduler();
+        JobDetail job = JobBuilder.newJob(StatJob.class)
+                .withIdentity("myJob", "group1")
+                .build();
+
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger3", "group1")
+                .withSchedule(CronScheduleBuilder.cronSchedule("* * 8-17 * * ?"))
+                .build();
+
+        scheduler.scheduleJob(job, trigger);
+
+        scheduler.start();
+
     }
 
     public ResponseEntity<?> getItems(Integer categoryId) {
@@ -42,47 +92,163 @@ public class ItemsService {
         return ResponseEntity.ok().body(items);
     }
 
+    public ResponseEntity<?> getItemById(Long itemId) {
+        Optional<Item> item = repository.findById(itemId);
+        if (item.isEmpty()) {
+            return ResponseEntity.ok().body("No such item");
+        }
+        Item itemReal = item.get();
+        return ResponseEntity.ok().body(itemReal);
+    }
+
+    public ResponseEntity<?> addItem(ObjectNode json) {
+        Long id = json.get("id").asLong();
+        int number = json.get("number").asInt();
+        int categoryId = json.get("category_id").asInt();
+        String description = json.get("description").asText();
+        Long price = json.get("price").asLong();
+
+        Item item = new Item(id, number, categoryId, description, price);
+
+        item = repository.save(item);
+
+
+        return ResponseEntity.ok().body(item);
+    }
+
+    public ResponseEntity<?> deleteItem(ObjectNode json) {
+
+        Long id = json.get("id").asLong();
+
+        Item toDelete = repository.findById(id).get();
+        repository.delete(toDelete);
+        return ResponseEntity.ok().body(toDelete);
+    }
+
+
+    private long calculateCart(User user) {
+        List<Cart> carts = cartRepository
+                .findCartsByOwnerLoginAndStatus(user.getLogin(), "reserved");
+        long result = 0L;
+        for (Cart cart : carts) {
+            long price = repository.findById(cart.getItemId()).get().getPrice();
+            result += cart.getItemNumber() * price;
+        }
+
+        return result;
+    }
+
+
+    public static void main(String[] args) throws MqttException, InterruptedException {
+        JmsSender sender = new JmsSender();
+
+        Thread.sleep(5000);
+
+        sender.send("""
+                {
+                    "userId": "7",
+                    "orderId": "5",
+                    "amount": "501"
+                }
+                """, "withdraw");
+
+    }
+
+
+    @Transactional
     public ResponseEntity<?> purchaseItems(ObjectNode json) {
 
-        Order order = validateOrderDetails(json);
 
+        User user = userRepository.findByLogin(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        ).get();
+
+        long cartPrice = calculateCart(user);
+
+        Order order = validateOrderDetails(json);
         if (order == null) {
             return ResponseEntity.ok("Can not process order due to incorrect details");
         }
 
-        String login = json.get("user").get("login").asText();
+
+//        if (user.getBalance() < calculateCart(user)) {
+//            return ResponseEntity.ok().body("Not enough balance to process order");
+//        }
+
+        order = orderRepository.save(order);
 
         List<Cart> carts = cartRepository
-                .findCartsByOwnerLoginAndStatus(login, "reserved");
+                .findCartsByOwnerLoginAndStatus(user.getLogin(), "reserved");
+        order = orderRepository.save(order);
 
         for (Cart cart : carts) {
             Optional<Item> query = repository.findById(cart.getItemId());
-            Cart alreadyPurchased = cartRepository
-                    .findByOwnerLoginAndItemIdAndStatus(login, cart.getItemId(), "purchased");
-
             if (query.isPresent()) {
                 Item item = query.get();
-
                 if (item.getNumber() >= cart.getItemNumber()) {
                     item.setNumber(item.getNumber() - cart.getItemNumber());
-
-                    if (alreadyPurchased != null) {
-                        alreadyPurchased.setItemNumber(alreadyPurchased.getItemNumber() + cart.getItemNumber());
-                    } else {
-                        cart.setStatus("purchased");
-                        cart.setOrderId(order.getId());
-                    }
-                    cartRepository.save(cart);
                     repository.save(item);
-                } else return ResponseEntity.ok("Can not process order. We don't have some of your items");
-            } else return ResponseEntity.ok("Can not process order. Cart is empty");
+                    cart.setStatus("waiting_payment");
+                    cart.setOrderId(order.getId());
+                    cartRepository.save(cart);
+                } else {
+                    throw new RuntimeException("Can not process order. Not enough items");
+                }
+            } else {
+                throw new RuntimeException("Can not process order. No such items");
+            }
+
         }
 
-        orderService.addOrder(order);
+        try {
+            jmsSender.send(createWriteOffMessage(user.getId(), order.getId(), cartPrice),
+                    "withdraw");
+        } catch (Exception ignored) {
+        }
+//        successfulOrders += 1;
 
         return ResponseEntity.ok().build();
+    }
 
 
+    @RabbitListener(queues = "withdrawAnswersQueue")
+    public void withdrawAnswers(String message) {
+        JSONObject jsonObject = new JSONObject(message);
+        String status = (String) jsonObject.get("status");
+        String orderIdText = (String) jsonObject.get("orderId");
+
+        Order order = orderRepository.findById(Long.parseLong(orderIdText)).get();
+
+        List<Cart> carts = cartRepository.findCartsByOrderId(order.getId());
+
+        if (status.equals("success")) {
+//            cart.setStatus("acquired");
+
+            carts.forEach(c -> {
+                c.setStatus("acquired");
+                cartRepository.save(c);
+            });
+        }
+
+        if (status.equals("not enough balance")) {
+//            cart.setStatus("payment_issue");
+
+            carts.forEach(c -> {
+                c.setStatus("payment_issue");
+                cartRepository.save(c);
+                Item item = repository.findById(c.getItemId()).get();
+                item.setNumber(item.getNumber() + c.getItemNumber());
+                repository.save(item);
+            });
+        }
+
+    }
+
+    private String createWriteOffMessage(Long userId, Long orderId, Long amount) {
+        return new JSONObject().put("userId", userId.toString())
+                .put("orderId", orderId.toString())
+                .put("amount", amount.toString())
+                .toString();
     }
 
     private Order validateOrderDetails(ObjectNode json) {
@@ -121,11 +287,12 @@ public class ItemsService {
         order.setRegion(region);
         order.setCityStreetHouse(cityStreetHouse);
         order.setApartment(apartment);
-        order.setFl00r(floor);
+        order.setFloor(floor);
         order.setLift(lift);
         order.setPhoneNumber(phoneNumber);
         order.setTerminalPayment(paymentType);
         order.setFurnitureAssembly(furnitureAssembly);
+        order.setStatus("pending");
 
 
         return order;
