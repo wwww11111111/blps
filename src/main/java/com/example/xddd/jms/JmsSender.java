@@ -9,7 +9,7 @@ import java.util.Scanner;
 public class JmsSender {
 
     MqttAsyncClient aClient = new MqttAsyncClient("tcp://localhost:1883",
-            "testClientLmao2");
+            "testClientLmao3");
     MqttConnectOptions options = new MqttConnectOptions();
 
 
@@ -25,29 +25,6 @@ public class JmsSender {
         });
     }
 
-    public static void main(String[] args) throws MqttException, InterruptedException {
-        MqttAsyncClient aClient = new MqttAsyncClient("tcp://localhost:1883",
-                "testClientLmao2");
-        MqttConnectOptions options = new MqttConnectOptions();
-        Scanner scanner = new Scanner(System.in);
-
-        aClient.connect(options, new IMqttActionListener() {
-            public void onSuccess(IMqttToken asyncActionToken) {
-                System.out.println("Connected");
-            }
-
-            public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                System.out.println("Connection failed: " + exception);
-            }
-        });
-        while (true) {
-            scanner.nextLine();
-            MqttMessage msg = new MqttMessage("test".getBytes());
-            msg.setRetained(true);
-            aClient.publish("fillUp", msg);
-
-        }
-    }
 
     public void send(String message, String topic) throws MqttException {
         MqttMessage msg = new MqttMessage(message.getBytes());

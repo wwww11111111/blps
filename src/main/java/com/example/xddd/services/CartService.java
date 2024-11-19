@@ -7,7 +7,6 @@ import com.example.xddd.repositories.CartRepository;
 import com.example.xddd.repositories.ItemsRepository;
 import com.example.xddd.repositories.UserRepository;
 import com.example.xddd.security.Role;
-import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -24,23 +23,21 @@ public class CartService {
 
     private final ItemsRepository itemsRepository;
     private final CartRepository repository;
-    private final UserRepositoryXmlImpl repositoryXml;
     private final UserRepository userRepository;
 
 
-    public CartService(ItemsRepository itemsRepository, CartRepository repository, UserRepositoryXmlImpl repositoryXml, UserRepository userRepository) {
+    public CartService(ItemsRepository itemsRepository, CartRepository repository, UserRepository userRepository) {
         this.itemsRepository = itemsRepository;
         this.repository = repository;
-        this.repositoryXml = repositoryXml;
         this.userRepository = userRepository;
     }
 
 
-        public ResponseEntity<?> add(ObjectNode json) {
+    public ResponseEntity<?> add(ObjectNode json) {
 
-            User user = userRepository.findByLogin(
-                    SecurityContextHolder.getContext().getAuthentication().getName()
-            ).get();
+        User user = userRepository.findByLogin(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        ).get();
 
 
         int number;
@@ -73,6 +70,10 @@ public class CartService {
                 user.getLogin(), id, "reserved"
         );
 
+        if (number < 1) {
+            return ResponseEntity.ok().body("you should add at least 1 item");
+        }
+
         if (cart == null) {
 
             cart = new Cart(user.getLogin(),
@@ -94,9 +95,9 @@ public class CartService {
 
 
     public ResponseEntity<?> delete(ObjectNode json) {
-        User user = repositoryXml.findByLogin(
+        User user = userRepository.findByLogin(
                 SecurityContextHolder.getContext().getAuthentication().getName()
-        );
+        ).get();
 
         int id = Integer.parseInt(
                 json.get("id").asText()
@@ -114,11 +115,10 @@ public class CartService {
     }
 
 
-
     public ResponseEntity<?> getCart(ObjectNode json) {
-        User user = repositoryXml.findByLogin(
+        User user = userRepository.findByLogin(
                 SecurityContextHolder.getContext().getAuthentication().getName()
-        );
+        ).get();
 
         List<Cart> items = repository.findCartsByOwnerLoginAndStatus(user.getLogin(), "reserved");
 

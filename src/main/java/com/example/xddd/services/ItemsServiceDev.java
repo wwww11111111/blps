@@ -5,7 +5,6 @@ import com.example.xddd.entities.Item;
 import com.example.xddd.entities.Order;
 import com.example.xddd.repositories.CartRepository;
 import com.example.xddd.repositories.ItemsRepository;
-import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -21,15 +20,13 @@ public class ItemsServiceDev {
     private final ItemsRepository repository;
     private final CartRepository cartRepository;
     private final OrderService orderService;
-    private final UserRepositoryXmlImpl repositoryXml;
 
     public ItemsServiceDev(ItemsRepository repository,
                         CartRepository cartRepository,
-                        OrderService orderService, UserRepositoryXmlImpl repositoryXml) {
+                        OrderService orderService) {
         this.repository = repository;
         this.cartRepository = cartRepository;
         this.orderService = orderService;
-        this.repositoryXml = repositoryXml;
     }
 
     public ResponseEntity<?> getItems(Integer categoryId) {

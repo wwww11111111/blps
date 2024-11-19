@@ -3,7 +3,6 @@ package com.example.xddd.security;
 import com.example.xddd.repositories.UserRepository;
 import com.example.xddd.security.jaas.LoginModuleClass;
 import com.example.xddd.security.jaas.UserRepositoryAuthorityGranter;
-import com.example.xddd.xmlrepo.UserRepositoryXmlImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.jaas.AbstractJaasAuthenticationProvider;

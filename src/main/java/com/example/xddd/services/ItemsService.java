@@ -13,8 +13,6 @@ import com.example.xddd.services.jobs.StatJob;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
 import lombok.Setter;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONObject;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
@@ -22,12 +20,16 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.transaction.*;
+//import javax.transaction.*;
+import javax.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Scanner;
 
 
 @Service
@@ -53,11 +55,11 @@ public class ItemsService {
         this.userRepository = userRepository;
         this.jmsSender = jmsSender;
         successfulOrders = 0;
-//        try {
-//            startJob();
-//        } catch (SchedulerException e) {
-//            throw new RuntimeException(e);
-//        }
+        try {
+            startJob();
+        } catch (SchedulerException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -71,7 +73,7 @@ public class ItemsService {
 
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger3", "group1")
-                .withSchedule(CronScheduleBuilder.cronSchedule("* * 8-17 * * ?"))
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 * 8-17 * * ?"))
                 .build();
 
         scheduler.scheduleJob(job, trigger);
@@ -126,9 +128,8 @@ public class ItemsService {
     }
 
 
-    private long calculateCart(User user) {
-        List<Cart> carts = cartRepository
-                .findCartsByOwnerLoginAndStatus(user.getLogin(), "reserved");
+    private long calculateCart(List<Cart> carts) {
+
         long result = 0L;
         for (Cart cart : carts) {
             long price = repository.findById(cart.getItemId()).get().getPrice();
@@ -139,31 +140,11 @@ public class ItemsService {
     }
 
 
-    public static void main(String[] args) throws MqttException, InterruptedException {
-        JmsSender sender = new JmsSender();
-
-        Thread.sleep(5000);
-
-        sender.send("""
-                {
-                    "userId": "7",
-                    "orderId": "5",
-                    "amount": "501"
-                }
-                """, "withdraw");
-
-    }
-
-
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ResponseEntity<?> purchaseItems(ObjectNode json) {
-
-
         User user = userRepository.findByLogin(
                 SecurityContextHolder.getContext().getAuthentication().getName()
         ).get();
-
-        long cartPrice = calculateCart(user);
 
         Order order = validateOrderDetails(json);
         if (order == null) {
@@ -171,46 +152,38 @@ public class ItemsService {
         }
 
 
-//        if (user.getBalance() < calculateCart(user)) {
-//            return ResponseEntity.ok().body("Not enough balance to process order");
-//        }
-
-        order = orderRepository.save(order);
-
         List<Cart> carts = cartRepository
                 .findCartsByOwnerLoginAndStatus(user.getLogin(), "reserved");
+
         order = orderRepository.save(order);
+        long cartPrice = calculateCart(carts);
+
 
         for (Cart cart : carts) {
-            Optional<Item> query = repository.findById(cart.getItemId());
-            if (query.isPresent()) {
-                Item item = query.get();
-                if (item.getNumber() >= cart.getItemNumber()) {
-                    item.setNumber(item.getNumber() - cart.getItemNumber());
-                    repository.save(item);
-                    cart.setStatus("waiting_payment");
-                    cart.setOrderId(order.getId());
-                    cartRepository.save(cart);
-                } else {
-                    throw new RuntimeException("Can not process order. Not enough items");
-                }
+            Item item = repository.findById(cart.getItemId()).get();
+            if (item.getNumber() >= cart.getItemNumber()) {
+                item.setNumber(item.getNumber() - cart.getItemNumber());
+                repository.save(item);
+                cart.setStatus("waiting_payment");
+                cart.setOrderId(order.getId());
+                cartRepository.save(cart);
             } else {
-                throw new RuntimeException("Can not process order. No such items");
+                throw new RuntimeException("Can not process order. Not enough items");
             }
-
         }
-
         try {
             jmsSender.send(createWriteOffMessage(user.getId(), order.getId(), cartPrice),
                     "withdraw");
         } catch (Exception ignored) {
         }
-//        successfulOrders += 1;
+        successfulOrders += 1;
 
         return ResponseEntity.ok().build();
     }
 
 
+    //    @Transactional
+    @Transactional
     @RabbitListener(queues = "withdrawAnswersQueue")
     public void withdrawAnswers(String message) {
         JSONObject jsonObject = new JSONObject(message);
@@ -222,8 +195,6 @@ public class ItemsService {
         List<Cart> carts = cartRepository.findCartsByOrderId(order.getId());
 
         if (status.equals("success")) {
-//            cart.setStatus("acquired");
-
             carts.forEach(c -> {
                 c.setStatus("acquired");
                 cartRepository.save(c);
@@ -231,8 +202,6 @@ public class ItemsService {
         }
 
         if (status.equals("not enough balance")) {
-//            cart.setStatus("payment_issue");
-
             carts.forEach(c -> {
                 c.setStatus("payment_issue");
                 cartRepository.save(c);
